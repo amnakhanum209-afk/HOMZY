@@ -1,9 +1,8 @@
-
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/session";
 
-// Check owner login
+// Check whether the logged-in user is a property owner
 async function checkOwner() {
   const session = await verifySession();
 
@@ -12,13 +11,106 @@ async function checkOwner() {
   }
 
   if (session.role !== "OWNER" && !session.isOwner) {
-    return { error: "Only property owners can manage bookings.", status: 403 };
+    return {
+      error: "Only property owners can manage bookings.",
+      status: 403,
+    };
   }
 
   return { session };
 }
 
-// GET: View bookings for owner's properties
+// TENANT: Submit a property visit request
+export async function POST(request: Request) {
+  try {
+    const session = await verifySession();
+
+    if (!session) {
+      return NextResponse.json(
+        { error: "Please login first." },
+        { status: 401 }
+      );
+    }
+
+    if (session.role !== "TENANT" || session.isOwner) {
+      return NextResponse.json(
+        { error: "Only tenants can request property visits." },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+
+    const { propertyId, visitAt, message } = body;
+
+    if (!propertyId || !visitAt) {
+      return NextResponse.json(
+        { error: "Property and visit date are required." },
+        { status: 400 }
+      );
+    }
+
+    const visitDate = new Date(visitAt);
+
+    if (Number.isNaN(visitDate.getTime())) {
+      return NextResponse.json(
+        { error: "Please select a valid visit date." },
+        { status: 400 }
+      );
+    }
+
+    if (visitDate <= new Date()) {
+      return NextResponse.json(
+        { error: "Please select a future date and time." },
+        { status: 400 }
+      );
+    }
+
+    const property = await prisma.property.findUnique({
+      where: { id: propertyId },
+    });
+
+    if (!property || property.status !== "APPROVED") {
+      return NextResponse.json(
+        { error: "This property is not available for booking." },
+        { status: 404 }
+      );
+    }
+
+    if (property.ownerId === session.userId) {
+      return NextResponse.json(
+        { error: "You cannot book a visit to your own property." },
+        { status: 403 }
+      );
+    }
+
+    const booking = await prisma.visitBooking.create({
+      data: {
+        tenantId: session.userId,
+        propertyId,
+        visitAt: visitDate,
+        message: message?.trim() || null,
+      },
+    });
+
+    return NextResponse.json(
+      {
+        message: "Your visit request has been submitted successfully!",
+        booking,
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Create visit booking error:", error);
+
+    return NextResponse.json(
+      { error: "Unable to submit your visit request." },
+      { status: 500 }
+    );
+  }
+}
+
+// OWNER: View received visit requests
 export async function GET() {
   try {
     const auth = await checkOwner();
@@ -56,7 +148,7 @@ export async function GET() {
   }
 }
 
-// PATCH: Accept or reject a booking
+// OWNER: Accept or reject a visit request
 export async function PATCH(request: Request) {
   try {
     const auth = await checkOwner();
@@ -71,7 +163,10 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const { bookingId, status } = body;
 
-    if (!bookingId || !["ACCEPTED", "REJECTED"].includes(status)) {
+    if (
+      !bookingId ||
+      !["ACCEPTED", "REJECTED"].includes(status)
+    ) {
       return NextResponse.json(
         { error: "Valid booking ID and status are required." },
         { status: 400 }
@@ -102,12 +197,8 @@ export async function PATCH(request: Request) {
     }
 
     const updatedBooking = await prisma.visitBooking.update({
-      where: {
-        id: bookingId,
-      },
-      data: {
-        status,
-      },
+      where: { id: bookingId },
+      data: { status },
     });
 
     return NextResponse.json({
@@ -118,7 +209,7 @@ export async function PATCH(request: Request) {
     console.error("Update booking error:", error);
 
     return NextResponse.json(
-      { error: "Unable to update booking." },
+      { error: "Unable to update bookings." },
       { status: 500 }
     );
   }
