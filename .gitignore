@@ -45,3 +45,7 @@ next-env.d.ts
 .agents/
 .claude/
 .windsurf/
+
+# Python AI service
+/ai-service/venv/
+/ai-service/__pycache__/
