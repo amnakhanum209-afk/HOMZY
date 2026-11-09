@@ -1,3 +1,4 @@
+
 import Image from "next/image";
 import Link from "next/link";
 import { verifySession } from "@/lib/session";
@@ -5,6 +6,8 @@ import LogoutButton from "@/app/components/LogoutButton";
 import NavLoginButton from "@/app/components/NavLoginButton";
 import ImageSlider from "@/app/components/ImageSlider";
 import PropertyCard from "@/app/components/PropertyCard";
+import OwnerRequestSection from "@/app/components/OwnerRequestSection";
+import AssistantChat from "@/app/components/AssistantChat";
 import { searchProperties } from "@/lib/properties";
 
 type HomeProperty = {
@@ -308,6 +311,16 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* TENANT AI ASSISTANT */}
+      {session?.role === "TENANT" && !session.isOwner && (
+        <section id="homzy-ai-assistant" className="bg-[#F7F5F0]">
+          <AssistantChat embedded />
+        </section>
+      )}
+
+      {/* BECOME A HOMZY OWNER */}
+      <OwnerRequestSection />
+
       {/* FOOTER */}
       <footer className="border-t border-[#B88A3B]/40 bg-[linear-gradient(110deg,#F7F0E2_0%,#EBD5A8_20%,#DFC184_45%,#D4AF6A_70%,#C69A48_100%)] px-8 py-12">
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
@@ -385,13 +398,28 @@ export default async function Home() {
 
             <ul className="mt-4 flex flex-col gap-2">
               <li>
-                <Link href="/properties/new" className="text-sm text-[#10243A] hover:text-[#8A6938]">
+                <Link
+                  href="/#become-owner"
+                  className="text-sm text-[#10243A] hover:text-[#8A6938]"
+                >
+                  Become an Owner
+                </Link>
+              </li>
+
+              <li>
+                <Link
+                  href="/properties/new"
+                  className="text-sm text-[#10243A] hover:text-[#8A6938]"
+                >
                   List Your Property
                 </Link>
               </li>
 
               <li>
-                <Link href="/properties/my" className="text-sm text-[#10243A] hover:text-[#8A6938]">
+                <Link
+                  href="/properties/my"
+                  className="text-sm text-[#10243A] hover:text-[#8A6938]"
+                >
                   Owner Dashboard
                 </Link>
               </li>

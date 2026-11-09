@@ -1,8 +1,10 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import AssistantChat from "@/app/components/AssistantChat";
 
 type Property = {
   id: string;
@@ -190,9 +192,9 @@ export default function MyPropertiesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A1F44] px-8 py-12">
+    <div className="min-h-screen bg-[#0A1F44] px-4 py-12 sm:px-8">
       <div className="mx-auto max-w-5xl">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-3xl font-bold text-white">My Properties</h1>
 
           <Link
@@ -281,6 +283,11 @@ export default function MyPropertiesPage() {
           </div>
         )}
       </div>
+
+      {/* OWNER AI ASSISTANT */}
+      <section className="mx-auto mt-12 max-w-6xl">
+        <AssistantChat embedded />
+      </section>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 generator client {
   provider            = "prisma-client"
   output              = "../app/generated/prisma"
+  moduleFormat        = "cjs"
   importFileExtension = "ts"
 }
 
@@ -22,7 +23,8 @@ model User {
   properties          Property[]
   ownerRequest        OwnerRequest?
   passwordResetTokens PasswordResetToken[]
-  tenantBookings VisitBooking[] 
+  tenantBookings      VisitBooking[]
+  conversations       Conversation[]
 }
 
 model Property {
@@ -58,7 +60,7 @@ model Property {
   previousStatus  PropertyStatus?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
- visitBookings VisitBooking[]
+  visitBookings   VisitBooking[]
 }
 
 model OwnerRequest {
@@ -140,6 +142,7 @@ model PropertyAmenity {
 
   @@unique([propertyId, amenityId])
 }
+
 model VisitBooking {
   id         String             @id @default(cuid())
   tenantId   String
@@ -162,4 +165,34 @@ enum VisitBookingStatus {
   PENDING
   ACCEPTED
   REJECTED
+}
+
+model Conversation {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String?
+  messages  ChatMessage[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([updatedAt])
+}
+
+model ChatMessage {
+  id             String          @id @default(cuid())
+  conversationId String
+  conversation   Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           ChatMessageRole
+  content        String          @db.Text
+  createdAt      DateTime        @default(now())
+
+  @@index([conversationId])
+  @@index([createdAt])
+}
+
+enum ChatMessageRole {
+  USER
+  ASSISTANT
 }
