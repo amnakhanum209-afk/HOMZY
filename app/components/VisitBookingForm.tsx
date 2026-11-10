@@ -7,6 +7,18 @@ type VisitBookingFormProps = {
   propertyId: string;
 };
 
+function getMinimumDateTime() {
+  // Round up to the next minute so the selected time
+  // cannot already be in the past.
+  const nextMinute = Math.ceil(Date.now() / 60000) * 60000;
+
+  return new Date(
+    nextMinute - new Date().getTimezoneOffset() * 60000
+  )
+    .toISOString()
+    .slice(0, 16);
+}
+
 export default function VisitBookingForm({
   propertyId,
 }: VisitBookingFormProps) {
@@ -18,13 +30,7 @@ export default function VisitBookingForm({
   const [isError, setIsError] = useState(false);
 
   useEffect(() => {
-    const localDate = new Date(
-      Date.now() - new Date().getTimezoneOffset() * 60000
-    )
-      .toISOString()
-      .slice(0, 16);
-
-    setMinimumDate(localDate);
+    setMinimumDate(getMinimumDateTime());
   }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -33,6 +39,18 @@ export default function VisitBookingForm({
 
     if (!visitAt) {
       setFeedback("Please select a visit date and time.");
+      setIsError(true);
+      return;
+    }
+
+    // Recalculate the minimum date at submission time.
+    const currentMinimum = getMinimumDateTime();
+    setMinimumDate(currentMinimum);
+
+    if (visitAt < currentMinimum) {
+      setFeedback(
+        "You cannot book a visit in the past. Please select a future date and time."
+      );
       setIsError(true);
       return;
     }
@@ -48,7 +66,7 @@ export default function VisitBookingForm({
         body: JSON.stringify({
           propertyId,
           visitAt: new Date(visitAt).toISOString(),
-          message,
+          message: message.trim(),
         }),
       });
 
@@ -98,7 +116,10 @@ export default function VisitBookingForm({
             type="datetime-local"
             min={minimumDate}
             value={visitAt}
-            onChange={(event) => setVisitAt(event.target.value)}
+            onChange={(event) => {
+              setVisitAt(event.target.value);
+              setFeedback("");
+            }}
             required
             className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-zinc-800 outline-none focus:border-[#D4AF37]"
           />
@@ -125,7 +146,7 @@ export default function VisitBookingForm({
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !minimumDate}
           className="rounded-lg bg-[#0A1F44] px-6 py-3 font-semibold text-white hover:bg-[#163566] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? "Submitting..." : "Request Visit"}
